@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <stdio.h>
+#include <errno.h>
 
 // structure represents thread args
 typedef struct _args {
@@ -25,7 +26,14 @@ static args child_args = {"Child", 10};
 int main() {
         // create child thread and execute print_strings function
         pthread_t thread_id;
-        pthread_create(&thread_id, NULL, print_strings, &child_args);
+        int exc_code = pthread_create(&thread_id, NULL, print_strings, &child_args);
+        // check exception code
+        if (exc_code) {
+                // print exception message which match to errno value
+                perror("can't create a thread: ");
+                // finish the process by returning from main
+                return 1;
+        }
         // call function in parent thread
         print_strings(&parent_args);
 
