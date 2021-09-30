@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <errno.h>
 
+// define exit code macroses
+#define CORRECT_EXIT_CODE 0
+#define EXCEPTION_EXIT_CODE 1
+
 // structure represents thread args
 typedef struct _args {
         char *string;
@@ -15,7 +19,7 @@ void *print_strings(void *param) {
         for (int i = 0; i < arguments->iteration_number; i++) {
                 printf("%s\n", arguments->string);
         }
-        return 0;
+        return CORRECT_EXIT_CODE;
 }
 
 // parent args
@@ -31,21 +35,24 @@ int main() {
         // check exception code
         if (exc_code) {
                 // print errno code description
-                perror("can't create a thread: ");
+                perror("can't create a thread");
                 // finish the proccess by returning from main
-                return 1;
+                return EXCEPTION_EXIT_CODE;
         }
         // wait child thread termenation
         exc_code = pthread_join(thread_id, NULL);
         // check exception code
         if (exc_code) {
-                perror("can't join a thread: ");
-                return 1;
+                perror("can't join a thread");
+                return EXCEPTION_EXIT_CODE;
         }
 
         // call function in parent thread
         print_strings(&parent_args);
 
-        pthread_exit(0);
+        pthread_exit(CORRECT_EXIT_CODE);
 }
+// undef exit code macroses
+#undef CORRECT_EXIT_CODE
+#undef EXCEPTION_EXIT_CODE
 
