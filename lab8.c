@@ -142,3 +142,4 @@ int main(int argc, char** argv) {
 #undef CORRECT_EXIT_CODE
 #undef EXCEPTION_EXIT_CODE
 #undef FREE_RESOURCES
+#undef INPUT_ARGS_COUNT
