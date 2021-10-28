@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -9,6 +10,7 @@
 #define CORRECT_EXIT_CODE 0 
 #define EXCEPTION_EXIT_CODE 1   
 #define INPUT_ARGS_COUNT 2
+#define MAX_THREAD_COUNT 300000
 // define free resources macro
 #define FREE_RESOURCES      \
     free(thread_args);      \
@@ -36,8 +38,34 @@ void *calc_sum(void *param) {
     return CORRECT_EXIT_CODE;
 }
 
+// check string on not digit characters consistence
+int has_no_digit(char* str)  {
+    size_t arg_len = strlen(str);
+
+    for (size_t i = 0;  i < arg_len; i++) {
+        if (!(str[i] >= '0' && str[i] <= '9')) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 // check cast of string to int (terminate the process if fails)
 int check_str_to_int_cast(char* str) {
+    // check is there not digit characters in string
+    if (has_no_digit(str)) {
+        printf("invalid arg: %s\n", str);
+        // finish the process by exit() function
+        exit(EXCEPTION_EXIT_CODE);    
+    }
+    // check 0 input arg value
+    size_t arg_len = strlen(str);
+    if (arg_len == 1) {
+        if (str[0] == '0') {
+            return 0;
+        }
+    }
+    // strtol() returns 0 if parse int was failed
     long int in_arg_value = strtol(str, NULL, 10);
     if (!in_arg_value || in_arg_value == LLONG_MIN || in_arg_value == LLONG_MAX) {
         printf("invalid arg: %s\n", str);
@@ -62,7 +90,7 @@ int main(int argc, char** argv) {
 
     // not less then one thread should executing in programm
     if (thread_count < 1) {
-        printf("invalid arg value: %d, should be more then 1\n", thread_count);
+        printf("invalid thread count: %d, should be more then 1\n", thread_count);
         return EXCEPTION_EXIT_CODE;
     }
 
@@ -71,7 +99,11 @@ int main(int argc, char** argv) {
         printf("invalid thread count: %d, should be less then iteration count: %d\n", thread_count, interation_count);
         return EXCEPTION_EXIT_CODE;
     }
-
+    // check MAX_THREAD_COUNT excess:
+    if (thread_count >= MAX_THREAD_COUNT) {
+        printf("invalid thread count: %d, should be less then MAX_THREAD_COUNT: %d\n", thread_count, MAX_THREAD_COUNT);
+        return EXCEPTION_EXIT_CODE;        
+    }
     // allocate dynamic memory for array of thread args (in parent thread)
     args *thread_args = (args*) malloc(sizeof(args)*thread_count);
     // check malloc execution correctness
@@ -143,3 +175,4 @@ int main(int argc, char** argv) {
 #undef EXCEPTION_EXIT_CODE
 #undef FREE_RESOURCES
 #undef INPUT_ARGS_COUNT
+#undef MAX_THREAD_COUNT
