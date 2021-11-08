@@ -37,7 +37,6 @@ void *calc_sum(void *param) {
 
     return CORRECT_EXIT_CODE;
 }
-
 // check string on not digit characters consistence
 int has_no_digit(char* str)  {
     size_t arg_len = strlen(str);
@@ -49,7 +48,6 @@ int has_no_digit(char* str)  {
     }
     return 0;
 }
-
 // check cast of string to int (terminate the process if fails)
 int check_str_to_int_cast(char* str) {
     // check is there not digit characters in string
@@ -74,7 +72,6 @@ int check_str_to_int_cast(char* str) {
     }
     return (int) in_arg_value;
 }
-
 // check correctness of thread count value
 int check_thread_count(int thread_count, int iteration_count) {
     // not less then one thread should executing in programm
@@ -94,7 +91,6 @@ int check_thread_count(int thread_count, int iteration_count) {
     }
     return CORRECT_EXIT_CODE;
 }
-
 // check argc value function
 int check_argc(int argc) {
     // check argc value
@@ -106,7 +102,6 @@ int check_argc(int argc) {
     }
     return CORRECT_EXIT_CODE;
 }
-
 // init thread_args array: args[thread_count]
 void init_thread_args(args* thread_args, int thread_count, int iteration_count) {
     int iter_block_size = iteration_count / thread_count;
@@ -119,7 +114,6 @@ void init_thread_args(args* thread_args, int thread_count, int iteration_count) 
     int last_thread_idx = thread_count - 1;
     thread_args[last_thread_idx].end_idx = iteration_count - 1;
 }
-
 // create threads with start routine 
 int start_all_threads(pthread_t *thread_id_array, args* thread_args, int last_thread_idx) {
     // create child threads with start routin:
@@ -137,7 +131,6 @@ int start_all_threads(pthread_t *thread_id_array, args* thread_args, int last_th
     }
     return CORRECT_EXIT_CODE;
 }
-
 // joining all threads and collecting partial sum (including partial sum on parent thread)
 int join_threads(double *pi, pthread_t* thread_id_array, args* thread_args, int last_thread_idx) {
     // join child threads and collect partial sum:
