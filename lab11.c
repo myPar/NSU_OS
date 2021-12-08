@@ -121,14 +121,10 @@ int main() {
         // join child thread and get result
         void *result;
 
-        //printf("\s", "not joined");
-
         if (pthread_join(thread_id, &result)) {
                 perror("can't join Child thread");
                 return EXCEPTION_EXIT_CODE;
         }
-
-        //printf("joined\n");
 
         int result_value = result;
         int code_value = code;
@@ -136,7 +132,6 @@ int main() {
         if (result_value == EXCEPTION_EXIT_CODE || code_value == EXCEPTION_EXIT_CODE) {
                 return EXCEPTION_EXIT_CODE;
         }
-        //printf("%d %d\n", result_value, code_value);
 
         // destroy mutex
         if (pthread_mutex_destroy(&mutex)) {
