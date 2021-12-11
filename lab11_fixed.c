@@ -170,6 +170,54 @@ void* child_routine() {
     return SUCCESS;
 }
 
+// check init state exception function
+int check_init_state(pthread_t *thread_id_ptr, int init_exception_status) {
+    int code;
+    void *result;
+
+    if (init_exception_status) {
+        code = pthread_join(*thread_id_ptr, &result);
+        if (code != SUCCESS) {
+            char* exception_message = strerror(code);
+            printf("%s%s\n", "Init state failed and can't join thread: ", exception_message);
+        }
+        else {
+            code = result;
+            char* exception_message = strerror(code);
+            printf("%s%s\n", "Init state failed: ", exception_message);
+        }
+        return FAILED;
+    }
+    return SUCCESS;
+}
+// try join child thread function
+int try_join_child(pthread_t *thread_id_ptr, void **child_result_ptr) {
+    int code = pthread_join(*thread_id_ptr, child_result_ptr);
+    if (code != SUCCESS) {
+        char* exception_message = strerror(code);
+        printf("%s%s\n", "Can't join thread: ", exception_message);
+
+        return FAILED;
+    }
+    return SUCCESS;
+}
+
+// check threads routine return code function
+int check_results(int child_ret_code, int parent_ret_code) {
+    if (child_ret_code != SUCCESS || parent_ret_code != SUCCESS) {
+        if (parent_ret_code != SUCCESS) {
+            char* exception_message = strerror(parent_ret_code);
+            printf("%s%s\n", "Error in parent thread: ", exception_message);
+        }
+        if (child_ret_code != SUCCESS) {
+            char* exception_message = strerror(child_ret_code);
+            printf("%s%s\n", "Error in child thread: ", exception_message);
+        }
+        return FAILED;
+    }
+    return SUCCESS;
+}
+
 int main() {
     // init attributes
     int code = init_attributes();
@@ -200,50 +248,26 @@ int main() {
     while(init_state && !init_exception_status) {
         sleep(1);
     }
-    void *result;
-    if (init_exception_status) {
-        // ignore ret status from child thread, no need to check join status
-        // because this case is already has error
-        code = pthread_join(thread_id, &result);
-        if (code != SUCCESS) {
-            char* exception_message = strerror(code);
-            printf("%s%s\n", "Init state failed and can't join thread: ", exception_message);
+    // check init state
+    code = check_init_state(&thread_id, init_exception_status);
+    if (code == FAILED) {return FAILED;}
 
-            return FAILED;
-        }
-        code = result;
-        char* exception_message = strerror(code);
-        printf("%s%s\n", "Init state failed: ", exception_message);
-
-        return FAILED;
-    }
     int parent_ret_code;
     int child_ret_code;
     void *child_result;
 
     parent_ret_code = parent_routine();
 
-    code = pthread_join(thread_id, &child_result);
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        printf("%s%s\n", "Can't join thread: ", exception_message);
-
-        return FAILED;
-    }
-    child_ret_code = child_result;
-    // check threads
-    if (child_ret_code != SUCCESS || parent_ret_code != SUCCESS) {
-        if (parent_ret_code != SUCCESS) {
-            char* exception_message = strerror(parent_ret_code);
-            printf("%s%s\n", "Error in parent thread: ", exception_message);
-        }
-        if (child_ret_code != SUCCESS) {
-            char* exception_message = strerror(child_ret_code);
-            printf("%s%s\n", "Error in child thread: ", exception_message);
-        }
-        return FAILED;
-    }
+    // join child
+    code = try_join_child(&thread_id, &child_result);
+    if (code == FAILED) {return FAILED;}
     
+    child_ret_code = child_result;
+
+    // check threads routines return codes
+    code = check_results(child_ret_code, parent_ret_code);
+    if (code == FAILED) {return FAILED;}
+
     // all mutexies are unlocked so can free the resources
     free_mutexies(MUTEX_COUNT);
 
