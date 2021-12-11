@@ -1,14 +1,15 @@
 #include <pthread.h>
 #include <stdio.h>
-#include <errno.h>
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define SUCCESS 0
 #define FAILED 1
 #define MUTEX_COUNT 3
 
-pthreat_mutex_t mutexies[MUTEX_COUNT];
+pthread_mutex_t mutexies[MUTEX_COUNT];
 pthread_mutexattr_t mutex_attributes[MUTEX_COUNT];
 int iteration_count = 10;
 int init_state = 1;
@@ -16,7 +17,7 @@ int init_exception_status = 0;
 
 // destroy first count mutex attributes
 void free_attributes(int count) {
-    assert(count <= MUTEX_COUNT);
+    assert(count <= MUTEX_COUNT && count >= 0);
 
     for (int i = 0; i < count; i++) {
         int code = pthread_mutexattr_destroy(&mutex_attributes[i]);
@@ -33,7 +34,7 @@ void free_attributes(int count) {
 
 // destroy first count mutexies
 void free_mutexies(int count) {
-    assert(count <= MUTEX_COUNT);
+    assert(count <= MUTEX_COUNT && count >= 0);
 
     for (int i = 0; i < count; i++) {
         int code = pthread_mutex_destroy(&mutexies[i]);
@@ -98,7 +99,7 @@ int init_mutexies() {
 }
 
 // parent thread function
-void* parent_routine() {
+int parent_routine() {
     int code;
     for (int i = 0; i < iteration_count; i++) {
         printf("Hello from Parent");
@@ -133,7 +134,7 @@ void* parent_routine() {
 }
 
 // child thread function
-void* child_routine() {
+void* child_routine(void* attr) {
     int code;
     // initial lock
     code = pthread_mutex_lock(&mutexies[2]);
@@ -231,6 +232,8 @@ int main() {
     }
     // free attributes objects after mutex initialization
     free_attributes(MUTEX_COUNT);
+    
+    /// exception LATER:
 
     // initial lock
     code = pthread_mutex_lock(&mutexies[0]);
@@ -242,7 +245,7 @@ int main() {
     }
     // create child thread
     pthread_t thread_id;
-    code = pthread_create(&thread_id, NULL, child_routine(), NULL);
+    code = pthread_create(&thread_id, NULL, child_routine, NULL);
     
     // parent tread wait till child thread will lock mutex
     while(init_state && !init_exception_status) {
