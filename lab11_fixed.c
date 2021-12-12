@@ -232,8 +232,6 @@ int main() {
     }
     // free attributes objects after mutex initialization
     free_attributes(MUTEX_COUNT);
-    
-    /// exception LATER:
 
     // initial lock
     code = pthread_mutex_lock(&mutexies[0]);
