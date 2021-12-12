@@ -102,7 +102,7 @@ int init_mutexies() {
 int parent_routine() {
     int code;
     for (int i = 0; i < iteration_count; i++) {
-        printf("Hello from Parent");
+        printf("Hello from Parent\n");
         code = pthread_mutex_lock(&mutexies[2]);
         if (code != SUCCESS) {return code;}
 
@@ -137,7 +137,7 @@ int parent_routine() {
 void* child_routine(void* attr) {
     int code;
     // initial lock
-    code = pthread_mutex_lock(&mutexies[2]);
+    code = pthread_mutex_lock(&mutexies[1]);
     if (code != SUCCESS) {
         init_exception_status = 1;
         return code;
@@ -149,7 +149,7 @@ void* child_routine(void* attr) {
         code = pthread_mutex_lock(&mutexies[0]);
         if (code != SUCCESS) {return code;}
         
-        printf("Hello from Child");
+        printf("Hello from Child\n");
         code = pthread_mutex_unlock(&mutexies[1]);
         if (code != SUCCESS) {return code;}
 
