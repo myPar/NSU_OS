@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <assert.h>
 #include <semaphore.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define SUCCESS 0
 #define FAILED 1
@@ -43,7 +45,7 @@ void *print(void* param) {
             // return exception code, errno is set
             return errno;
         }
-        printf(string);
+        printf("%s\n", string);
 
         if (sem_post(other_sem) == EXCEPTION_STATUS) {
             // return exception code, errno is set
@@ -130,7 +132,7 @@ int main() {
     void *child_result;
 
     // join child thread:
-    int code = pthread_join(*thread_id, &child_result);
+    code = pthread_join(thread_id, &child_result);
     if (code != SUCCESS) {
         char* exception_message = strerror(code);
         fprintf(stderr, "%s%s\n", "Can't join thread: ", exception_message);
