@@ -1,6 +1,6 @@
 #include <pthread.h>
 #include <stdio.h>
-#include <errno.h>
+#include <string.h>
 
 // define exit code macroses
 #define CORRECT_EXIT_CODE 0
@@ -34,8 +34,9 @@ int main() {
 
         // check exception code
         if (exc_code) {
-                // print errno code description
-                perror("can't create a thread");
+                char* error_message = strerror(exc_code);
+                // print error code description
+                fprintf(stderr, "%s%s\n", "can't create a child thread: ", error_message);
                 // finish the proccess by returning from main
                 return EXCEPTION_EXIT_CODE;
         }
@@ -43,7 +44,9 @@ int main() {
         exc_code = pthread_join(thread_id, NULL);
         // check exception code
         if (exc_code) {
-                perror("can't join a thread");
+                char* error_message = strerror(exc_code);
+                fprintf(stderr, "%s%s\n", "can't join a child thread: ", error_message);
+
                 return EXCEPTION_EXIT_CODE;
         }
 
@@ -55,4 +58,3 @@ int main() {
 // undef exit code macroses
 #undef CORRECT_EXIT_CODE
 #undef EXCEPTION_EXIT_CODE
-
