@@ -41,7 +41,7 @@ int main() {
         // call function in parent thread
         print_strings(&parent_args);
 
-        return CORRECT_EXIT_CODE;
+        pthread_exit(CORRECT_EXIT_CODE);
 }
 
 #undef CORRECT_EXIT_CODE
