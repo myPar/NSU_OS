@@ -50,16 +50,16 @@ int try_join_thread(pthread_t *thread, char *thread_name) {
   return SUCCESS;
 }
 
-char sequence1[STRING_COUNT][STRING_MAX_SIZE] = {"string1\n", "string1\n", "string1\n"};
-char sequence2[STRING_COUNT][STRING_MAX_SIZE] = {"string2\n", "string2\n", "string2\n"};
-char sequence3[STRING_COUNT][STRING_MAX_SIZE] = {"string3\n", "string3\n", "string3\n"};
-char sequence4[STRING_COUNT][STRING_MAX_SIZE] = {"string4\n", "string4\n", "string4\n"};
-
 int main() {
   pthread_t thread1;
   pthread_t thread2;
   pthread_t thread3;
   pthread_t thread4;
+
+  char sequence1[STRING_COUNT][STRING_MAX_SIZE] = {"string1\n", "string1\n", "string1\n"};
+  char sequence2[STRING_COUNT][STRING_MAX_SIZE] = {"string2\n", "string2\n", "string2\n"};
+  char sequence3[STRING_COUNT][STRING_MAX_SIZE] = {"string3\n", "string3\n", "string3\n"};
+  char sequence4[STRING_COUNT][STRING_MAX_SIZE] = {"string4\n", "string4\n", "string4\n"};
 
   args arg1 = {sequence1, STRING_COUNT};
   args arg2 = {sequence2, STRING_COUNT};
