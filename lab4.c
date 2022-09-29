@@ -6,7 +6,6 @@
 #define SUCCESS 0
 #define FAILED 1
 #define WAIT_TIME 2
-#define PRINT_DELTA_TIME 2 * 100000 // in microseconds
 
 // infinity routine of printing text
 void *print_text(void *arg) {
@@ -14,7 +13,7 @@ void *print_text(void *arg) {
 
   while (1) {
     printf("%s\n", text);
-    usleep(PRINT_DELTA_TIME);
+    pthread_testcancel();
   }
 }
 
@@ -24,7 +23,7 @@ int try_cancel_thread(pthread_t *thread) {
 
   if (code != SUCCESS) {
         char* error_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "can't cancel a child thread:", error_message);
+        fprintf(stderr, "%s%s\n", "can't cancel a child thread: ", error_message);
 
         return FAILED;
   }
@@ -61,14 +60,17 @@ int main() {
   pthread_t child_thread;
   char* text = "Child thread text\n"; // this text will be printed by child thread
 
-  if (try_create_thread(&child_thread, text) == FAILED) {return FAILED;}
+  int create_status = try_create_thread(&child_thread, text);
+  if (create_status == FAILED) {return FAILED;}
 
   sleep(WAIT_TIME);
 
-  if (try_cancel_thread(&child_thread) == FAILED) {return FAILED;}
+  int cancel_status = try_cancel_thread(&child_thread);
+  if (cancel_status == FAILED) {return FAILED;}
 
   // join child thread to reliaze the resources:
-  if (try_join_thread(&child_thread) == FAILED) {return FAILED;}
+  int join_status = try_join_thread(&child_thread);
+  if (join_status == FAILED) {return FAILED;}
 
   return SUCCESS;
 }
@@ -76,4 +78,3 @@ int main() {
 #undef SUCCESS
 #undef FAILED
 #undef WAIT_TIME
-#undef PRINT_DELTA_TIME

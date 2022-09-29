@@ -6,23 +6,30 @@
 #define SUCCESS 0
 #define FAILED 1
 #define WAIT_TIME 2
-#define PRINT_DELTA_TIME 1 * 100000 // in microseconds
 
-char* printing_text = "Child thread text\n"; // this text will be printed by child thread
-char* termination_text = "Child thread is terminated\n";
+typedef struct _args {
+  char *termination_text;
+  char *print_text;
+} args;
 
 void cleanup_handler(void* arg) {
-  printf(termination_text);
+  char *termination_text = (char*) arg;
+
+  printf("%s\n", termination_text);
 }
 
 // infinity routine of printing text
-void *print_text() {
-  pthread_cleanup_push(cleanup_handler, NULL);  // push cleanup routine to the stack
+void *print_text(void* param) {
+  args *thread_args = (args*) param;
+
+  char *print_text = thread_args->print_text;
+  char *termination_text = thread_args->termination_text;
+
+  pthread_cleanup_push(cleanup_handler, (void*) termination_text);  // push cleanup routine to the stack
 
   while (1) {
+    printf("%s\n", print_text);
     pthread_testcancel();
-    printf("%s\n", printing_text);
-    usleep(PRINT_DELTA_TIME);
   }
   pthread_cleanup_pop(1);
 
@@ -56,8 +63,8 @@ int try_cancel_thread(pthread_t *thread) {
 }
 
 // creating a thread with exception handling
-int try_create_thread(pthread_t *thread) {
-  int code = pthread_create(thread, NULL, print_text, NULL);
+int try_create_thread(pthread_t *thread, args *arg) {
+  int code = pthread_create(thread, NULL, print_text, arg);
 
   if (code != SUCCESS) {
         char* error_message = strerror(code);
@@ -71,16 +78,24 @@ int try_create_thread(pthread_t *thread) {
 int main() {
   pthread_t child_thread;
 
-  if (try_create_thread(&child_thread) == FAILED) {return FAILED;}
+  char *print_text = "Child thread text";
+  char *termination_text = "Child thread is terminated";
+
+  args arg = {termination_text, print_text};
+
+  // try to create child thread:
+  int create_status = try_create_thread(&child_thread, &arg);
+  if (create_status == FAILED) {return FAILED;}
 
   sleep(WAIT_TIME);
 
-  if (try_cancel_thread(&child_thread) == FAILED) {return FAILED;}
+  // try to cancel child thread
+  int cancel_status = try_cancel_thread(&child_thread);
+  if (cancel_status == FAILED) {return FAILED;}
 
   // block main thread to prevent process killing before cancelation cleanup handler will be executed
-  if (try_join_thread(&child_thread) == FAILED) {return FAILED;}
-
-  printf("the execution is succefully completed\n");
+  int join_status = try_join_thread(&child_thread);
+  if (join_status == FAILED) {return FAILED;}
 
   return SUCCESS;
 }
@@ -88,4 +103,3 @@ int main() {
 #undef SUCCESS
 #undef FAILED
 #undef WAIT_TIME
-#undef PRINT_DELTA_TIME
