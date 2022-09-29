@@ -3,86 +3,82 @@
 #include <string.h>
 
 #define STRING_COUNT 3
-#define STRING_MAX_SIZE 20
+#define THREAD_COUNT 4
 
 #define SUCCESS 0
 #define FAILED 1
 
-typedef struct _args {
-  char (*strings)[STRING_MAX_SIZE];
-  int string_count;
-} args;
-
 void *print_string(void* arg) {
-  args* string_sequence = (args*) arg;
+  int thread_number = (int) arg;
+  char *string_token = "str ";
 
-  int str_count = string_sequence->string_count;
-
-  for (int i = 0; i < str_count; i++) {
-    printf(string_sequence->strings[i]);
+  for (int i = 0; i < STRING_COUNT; i++) {
+    for (int j = 0; j < thread_number; j++) {
+      printf("%s", string_token);
+    }
+    printf("\n");
   }
-  printf("\n");
 }
 
 // creating thread with print string sequence routine and handling errors
-int try_create_thread(pthread_t *thread, args *thread_args, char *thread_name) {
-  int code = pthread_create(thread, NULL, print_string, thread_args);
+int try_create_thread(pthread_t *thread, int thread_idx) {
+  int thread_number = thread_idx + 1;
+  int code = pthread_create(thread, NULL, print_string, (void*) thread_number);
 
   if (code != SUCCESS) {
-        char* error_message = strerror(code);
-        fprintf(stderr, "%s%s%s%s\n", "can't create ", thread_name, ": ", error_message);
+    char* error_message = strerror(code);
+    fprintf(stderr, "%s%s%s%s\n", "can't create thred ", thread_idx, ": ", error_message);
 
-        return FAILED;
+    return FAILED;
   }
   return SUCCESS;
 }
 
 // joining the thread with exception handling-
-int try_join_thread(pthread_t *thread, char *thread_name) {
+int try_join_thread(pthread_t *thread, int thread_idx) {
   int code = pthread_join(*thread, NULL);
-
+  
   if (code != SUCCESS) {
       char* error_message = strerror(code);
-      fprintf(stderr, "%s%s%s%s\n", "can't join ", thread_name, ": ", error_message);
+      fprintf(stderr, "%s%d%s%s\n", "can't join thread ", thread_idx, ": ", error_message);
 
       return FAILED;
   }
   return SUCCESS;
 }
 
+//  starting thread's routines
+int create_threads(pthread_t *threads) {
+    for (int i = 0; i < THREAD_COUNT; i++) {
+      int code = try_create_thread(&threads[i], i);
+
+      if (code == FAILED) {return FAILED;}
+    }
+    return SUCCESS;
+}
+
+// joining all threads
+int join_threads(pthread_t *threads) {
+  for (int i = 0; i < THREAD_COUNT; i++) {
+    int code = try_join_thread(&threads[i], i);
+    
+    if (code == FAILED) {return FAILED;}
+  }
+  return SUCCESS;
+}
+
 int main() {
-  pthread_t thread1;
-  pthread_t thread2;
-  pthread_t thread3;
-  pthread_t thread4;
+  pthread_t threads[THREAD_COUNT];
+  int create_status = create_threads(threads);
+  if (create_status == FAILED) {return FAILED;}
 
-  char sequence1[STRING_COUNT][STRING_MAX_SIZE] = {"string1\n", "string1\n", "string1\n"};
-  char sequence2[STRING_COUNT][STRING_MAX_SIZE] = {"string2\n", "string2\n", "string2\n"};
-  char sequence3[STRING_COUNT][STRING_MAX_SIZE] = {"string3\n", "string3\n", "string3\n"};
-  char sequence4[STRING_COUNT][STRING_MAX_SIZE] = {"string4\n", "string4\n", "string4\n"};
-
-  args arg1 = {sequence1, STRING_COUNT};
-  args arg2 = {sequence2, STRING_COUNT};
-  args arg3 = {sequence3, STRING_COUNT};
-  args arg4 = {sequence4, STRING_COUNT};
-
-  // main thread create a child thread and blocks untill child thread completes it's routine:
-  if (try_create_thread(&thread1, &arg1, "thread1") == FAILED) {return FAILED;}
-  if (try_join_thread(&thread1, "thread1") == FAILED) {return FAILED;}
-
-  if (try_create_thread(&thread2, &arg2, "thread2") == FAILED) {return FAILED;}
-  if (try_join_thread(&thread2, "thread2") == FAILED) {return FAILED;}
-
-  if (try_create_thread(&thread3, &arg3, "thread3") == FAILED) {return FAILED;}
-  if (try_join_thread(&thread3, "thread3") == FAILED) {return FAILED;}
-
-  if (try_create_thread(&thread4, &arg4, "thread4") == FAILED) {return FAILED;}
-  if (try_join_thread(&thread4, "thread4") == FAILED) {return FAILED;}
+  int join_status = join_threads(threads);
+  if (join_status == FAILED) {return FAILED;}
 
   return SUCCESS;
 }
 
 #undef STRING_COUNT
-#undef STRING_MAX_SIZE
 #undef SUCCESS
 #undef FAILED
+#undef THREAD_COUNT

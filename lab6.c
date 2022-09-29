@@ -47,7 +47,7 @@ int read_strings(args *arg_arr) {
             return FAILED;
           }
       }
-      // check just \n was entered
+      // check just '\n' was entered
       if (buffer[0] == '\n') {
         // the reading is over
         break;
@@ -125,7 +125,6 @@ int main() {
   pthread_t *threads_space;
 
   printf("enter the string sequence:\n");
-
   string_count = read_strings(arg_arr);
 
   if (string_count == FAILED) {return FAILED;}
@@ -137,19 +136,21 @@ int main() {
   printf("%s%d%s","The reading is over. Totally read strings ", string_count, "\n");
   
   // allocate thread's space
-  if (allocate_threads_space(string_count, &threads_space) == FAILED) {return FAILED;}
+  int allocate_status = allocate_threads_space(string_count, &threads_space);
+  if (allocate_status == FAILED) {return FAILED;}
 
   printf("\nstart sorting...\n");
 
   // create threads
-  if (create_threads(string_count, threads_space, arg_arr) == FAILED) {
+  int create_status = create_threads(string_count, threads_space, arg_arr);
+  if (create_status == FAILED) {
     free(threads_space);
-
     return FAILED;
   }
 
   // joining all threads
-  if (join_threads(string_count, threads_space) == FAILED) {
+  int join_status = join_threads(string_count, threads_space);
+  if (join_status == FAILED) {
     free(threads_space);
     return FAILED;
   }
