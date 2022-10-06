@@ -6,12 +6,13 @@
 #include <errno.h>
 #include <limits.h>
 
-// defining constants
+// constants
 #define CORRECT_EXIT_CODE 0 
 #define EXCEPTION_EXIT_CODE 1   
 #define INPUT_ARGS_COUNT 2
 #define MAX_THREAD_COUNT 300000
-// define free resources macro
+
+// free resources macro
 #define FREE_RESOURCES      \
     free(thread_args);      \
     free(thread_id_array);
@@ -65,7 +66,7 @@ int check_str_to_int_cast(char* str) {
     }
     // strtol() returns 0 if parse int was failed
     long int in_arg_value = strtol(str, NULL, 10);
-    if (!in_arg_value || in_arg_value == LLONG_MIN || in_arg_value == LLONG_MAX) {
+    if (!in_arg_value || in_arg_value == LONG_MIN || in_arg_value == LONG_MAX) {
         printf("invalid arg: %s\n", str);
         // finish the process by exit() function
         exit(EXCEPTION_EXIT_CODE);
@@ -76,7 +77,7 @@ int check_str_to_int_cast(char* str) {
 int check_thread_count(int thread_count, int iteration_count) {
     // not less then one thread should executing in programm
     if (thread_count < 1) {
-        printf("invalid thread count: %d, should be more then 1\n", thread_count);
+        printf("invalid thread count: %d, should be at less 1\n", thread_count);
         return EXCEPTION_EXIT_CODE;
     }
     // check thread count
@@ -121,8 +122,9 @@ int start_all_threads(pthread_t *thread_id_array, args* thread_args, int last_th
         int exc_code = pthread_create(&thread_id_array[i], NULL, calc_sum, &thread_args[i]);
         // check exception code
         if (exc_code) {
+                char *error_message = strerror(exc_code);
                 // print exception message which match to errno value
-                perror("can't create a thread");
+                fprintf(stderr, "%s%d%s%s\n", "can't create thread ", i, ": ", error_message);
                 // free resources
                 FREE_RESOURCES
                 // finish the process by returning from main
@@ -138,8 +140,10 @@ int join_threads(double *pi, pthread_t* thread_id_array, args* thread_args, int 
         int exc_code = pthread_join(thread_id_array[i], NULL);
         // check exception code
         if (exc_code) {
-            perror("can't join a thread");
+            char *error_message = strerror(exc_code);
+            fprintf(stderr, "%s%d%s%s\n", "can't join thread ", i, ": ", error_message);
             FREE_RESOURCES
+
             return EXCEPTION_EXIT_CODE;
         }
         // increment pi on calculated partial sum
