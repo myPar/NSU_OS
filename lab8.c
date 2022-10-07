@@ -12,17 +12,17 @@
 #define INPUT_ARGS_COUNT 2
 #define MAX_THREAD_COUNT 300000
 
-// free resources macro
-#define FREE_RESOURCES      \
-    free(thread_args);      \
-    free(thread_id_array);
-
 // structure represents thread args (start idx, end idx and partial sum)
 typedef struct _args {
     int st_idx;
     int end_idx;
     double sum;
 } args;
+
+void free_resources(pthread_t *threads, args *threads_args) {
+    free(threads_args);
+    free(threads);
+}
 
 // thread routine function (calculation of partial sum)
 void *calc_sum(void *param) {
@@ -50,7 +50,7 @@ int has_no_digit(char* str)  {
     return 0;
 }
 // check cast of string to int (terminate the process if fails)
-int check_str_to_int_cast(char* str) {
+int try_cast_arg_to_int(char* str) {
     // check is there not digit characters in string
     if (has_no_digit(str)) {
         printf("invalid arg: %s\n", str);
@@ -97,7 +97,7 @@ int check_argc(int argc) {
     // check argc value
     if (argc != INPUT_ARGS_COUNT + 1) {
         // print exception message
-        printf("invalid arg count: %d, should be 1\n", argc - 1);
+        printf("invalid arg count: %d, should be 2\n", argc - 1);
         // finish the process by returning from main
         return EXCEPTION_EXIT_CODE;
     }
@@ -125,8 +125,7 @@ int start_all_threads(pthread_t *thread_id_array, args* thread_args, int last_th
                 char *error_message = strerror(exc_code);
                 // print exception message which match to errno value
                 fprintf(stderr, "%s%d%s%s\n", "can't create thread ", i, ": ", error_message);
-                // free resources
-                FREE_RESOURCES
+
                 // finish the process by returning from main
                 return EXCEPTION_EXIT_CODE;                
         }
@@ -142,7 +141,6 @@ int join_threads(double *pi, pthread_t* thread_id_array, args* thread_args, int 
         if (exc_code) {
             char *error_message = strerror(exc_code);
             fprintf(stderr, "%s%d%s%s\n", "can't join thread ", i, ": ", error_message);
-            FREE_RESOURCES
 
             return EXCEPTION_EXIT_CODE;
         }
@@ -163,9 +161,9 @@ int main(int argc, char** argv) {
         return EXCEPTION_EXIT_CODE;
     }
     // count of creating threads
-    int thread_count = check_str_to_int_cast(argv[1]);
+    int thread_count = try_cast_arg_to_int(argv[1]);
     // count of iterations
-    int iteration_count = check_str_to_int_cast(argv[2]);
+    int iteration_count = try_cast_arg_to_int(argv[2]);
 
     // check thread count:
     if (check_thread_count(thread_count, iteration_count) == EXCEPTION_EXIT_CODE) {
@@ -195,24 +193,27 @@ int main(int argc, char** argv) {
     }
     // create child threads with start routin:
     if (start_all_threads(thread_id_array, thread_args, last_thread_idx) == EXCEPTION_EXIT_CODE) {
+        free_resources(thread_id_array, thread_args);
+
         return EXCEPTION_EXIT_CODE;
     }
     double pi = 0;
     // join child threads and collect partial sum:
     if (join_threads(&pi, thread_id_array, thread_args, last_thread_idx) == EXCEPTION_EXIT_CODE) {
+        free_resources(thread_id_array, thread_args);
+
         return EXCEPTION_EXIT_CODE;
     }
     // print the result
     printf("pi calc value - %.15g iteration count: %d, thread count: %d \n", pi, iteration_count, thread_count);
 
     // free resources (in parent thread)
-    FREE_RESOURCES
+    free_resources(thread_id_array, thread_args);
 
     return CORRECT_EXIT_CODE;
 }
 
 #undef CORRECT_EXIT_CODE
 #undef EXCEPTION_EXIT_CODE
-#undef FREE_RESOURCES
 #undef INPUT_ARGS_COUNT
 #undef MAX_THREAD_COUNT
