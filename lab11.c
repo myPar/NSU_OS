@@ -84,7 +84,7 @@ int init_attributes() {
             char* exception_message = strerror(code2);
             fprintf(stderr, "%s%s\n", "mutex atrr set type error: ", exception_message);
             // free resources (summary - i attributes)
-            free_attributes(i);
+            free_attributes(i + 1);
 
             return FAILED;    
         }
@@ -282,7 +282,6 @@ int main() {
         free_mutexies(MUTEX_COUNT);
         return FAILED;
     }
-
     // all mutexies are unlocked so can free the resources
     free_mutexies(MUTEX_COUNT);
 
