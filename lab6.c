@@ -35,16 +35,16 @@ int read_strings(args *arg_arr) {
       int *time_delay = &arg_arr[cur_idx].delay;
 
       if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL) {
-          // check EOF
-          if (feof(stdin)) {
-            printf("\nEOF is reached, the reading is over\n");
-            break;
-          }
           //check reading error
-          if (ferror(stdin)) {
+          if (ferror(stdin)) {    // TODO: fix
             fprintf(stderr, "an error occurred while reading from stdin\n");
 
             return FAILED;
+          }
+          // check EOF
+          if (feof(stdin)) {   // TODO: fix
+            printf("\nEOF is reached, the reading is over\n");
+            break;
           }
       }
       // check just '\n' was entered
