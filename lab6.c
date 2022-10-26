@@ -34,20 +34,25 @@ int read_strings(args *arg_arr) {
       char *buffer = arg_arr[cur_idx].string;
       int *time_delay = &arg_arr[cur_idx].delay;
 
-      if (fgets(buffer, MAX_STRING_SIZE, stdin) == NULL) {
+      char *result_ptr = fgets(buffer, MAX_STRING_SIZE, stdin);
+
+      if (result_ptr == NULL) { // error accured/EOF and no bytes were entered
           //check reading error
-          if (ferror(stdin)) {    // TODO: fix
+          int error_status = ferror(stdin);
+          if (error_status != SUCCESS) {
             fprintf(stderr, "an error occurred while reading from stdin\n");
 
             return FAILED;
           }
           // check EOF
-          if (feof(stdin)) {   // TODO: fix
+          int eof_status = feof(stdin);
+          if (eof_status != SUCCESS) {
+            // no data were transfered to buffer so just break from reading loop
             printf("\nEOF is reached, the reading is over\n");
-            break;
+            break;  
           }
       }
-      // check just '\n' was entered
+      // check just '\n' was entered (some data were transfered to buffer)
       if (buffer[0] == '\n') {
         // the reading is over
         break;
@@ -93,7 +98,8 @@ int try_create_thread(pthread_t *thread, args* thread_arg, int thread_idx) {
 //  starting thread's routines
 int create_threads(int string_count, pthread_t *threads, args *thread_args) {
     for (int i = 0; i < string_count; i++) {
-      if (try_create_thread(&threads[i], &thread_args[i], i) == FAILED) {return FAILED;}
+      int create_status = try_create_thread(&threads[i], &thread_args[i], i);
+      if (create_status == FAILED) {return FAILED;}
     }
     return SUCCESS;
 }
@@ -114,7 +120,8 @@ int try_join_thread(pthread_t *thread, int thread_idx) {
 // joining all threads
 int join_threads(int string_count, pthread_t *threads) {
   for (int i = 0; i < string_count; i++) {
-    if (try_join_thread(&threads[i], i) == FAILED) {return FAILED;}
+    int join_status = try_join_thread(&threads[i], i);
+    if (join_status == FAILED) {return FAILED;}
   }
   return SUCCESS;
 }
