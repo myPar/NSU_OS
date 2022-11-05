@@ -4,174 +4,8 @@
 #include <string.h>
 #include <errno.h>
 
-#define MAX_STRING_SIZE 100
-#define DELTA_TIME 100000
-#define MAX_STRING_COUNT 100
-#define SUCCESS 0
-#define FAILED -1
-
-//--------- Linked List structrues and funtions definitions --------------//
-typedef struct _LinkedList
-{
-    pthread_mutex_t *list_mutex;
-    Node *head;
-    Node *tail;
-} LinkedList;
-
-typedef struct _Node
-{
-    char *string;
-    Node *next;
-} Node;
-
-// init list with initialized mutex
-int init_list(LinkedList *list, pthread_mutex_t *mutex_ptr) {
-    if (list != NULL && mutex_ptr != NULL) {
-        // init mutex
-        list->head = NULL;
-        list->tail = NULL;
-        list->list_mutex = mutex_ptr;
-    }
-}
-
-int is_empty(LinkedList *list`) {
-    if (list->head == NULL && list->tail == NULL) {
-        return SUCCESS;
-    }
-    return FAILED;
-}
-
-int is_not_empty(LinkedList *list) {
-    if (list->head != NULL && list->tail != NULL) {
-        return SUCCESS;
-    }
-    return FAILED;
-}
-
-// terminates the process if list is not in consistent state (to prevent using of incorrect list)
-void check_list_consistency(LinkedList *list) {
-    int status = SUCCESS;
-    if (list == NULL) {
-        status = FAILED;
-    }
-    else {
-        int is_empty = is_empty(list);
-        int is_not_empty = is_not_empty(list);
-        // check list consistensy
-        if (is_empty != SUCCESS && is_not_empty != SUCCESS) {
-            status = FAILED
-        }
-    }
-    if (status != SUCCESS) {
-        fprintf(stderr, "FATAL: list is invalied");
-        exit(FAILED);
-    }
-}
-
-// adding new item to the end of list (synchronized)
-int add(LinkedList *list, char *adding_string) {
-    check_list_consistency(list); // check list consistency
-
-    pthread_mutex_t *list_mutex = list->list_mutex;
-
-    // lock mutex for synchronization:
-    int code = pthread_mutex_lock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-    // allocate memory for new node:
-    Node *new_node = (Node*) malloc(sizeof(Node));
-    
-    if (new_node == NULL) {
-        return errno;   // errno is set
-    }
-    // init new node
-    new_node->string = adding_string;
-    new_node->next = NULL;
-    
-    Node *head = list->head;
-    Node *tail = list->tail;
-
-    // add node to list:
-    if (head == NULL) {
-        list->head = new_node;
-        list->tail = new_node;
-    }
-    else {
-        list->tail->next = new_node;
-        list->tail = new_node;
-    }
-
-    // unlock mutex for synchronization:
-    code = pthread_mutex_unlock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-
-    return SUCCESS;
-}
-
-// print all list items
-int print_list(LinkedList *list) {
-    check_list_consistency(list); // check list consistency
-    
-    pthread_mutex_t *list_mutex = list->list_mutex;
-
-    // lock mutex for synchronization
-    int code = pthread_mutex_lock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-
-    Node *cur_item = list->head;
-
-    while (cur_item != NULL) {
-        printf("%s\n", cur_item->string);
-        cur_item = cur_item->next;
-    }
-
-    // unlock mutex for synchronization:
-    code = pthread_mutex_unlock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-
-    return SUCCESS;
-}
-
-// free list memory from list nodes (without mutex destroying!)
-int free_list(LinkedList *list) {
-    check_list_consistency(list); // check list consistency
-
-    Node *cur_item = list->head;
-    Node *next_item;
-
-    if (cur_item == NULL) {
-        // nothing to free the list is empty
-        return;
-    }
-    pthread_mutex_t *list_mutex = list->list_mutex;
-    
-    // lock mutex for synchronization:
-    int code = pthread_mutex_lock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-
-    while (cur_item != NULL) {
-        next_item = cur_item->next;
-        free(cur_item);
-        cur_item = next_item;
-    }
-
-    // unlock mutex for synchronization:
-    code = pthread_mutex_unlock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
-    }
-
-    return SUCCESS;
-}
+#include "list.h"
+#include "constants_define.h"
 
 //--------- main program functions and structures --------------//
 
@@ -361,6 +195,21 @@ int destroy_mutex(pthread_mutex_t *mutex) {
     return SUCCESS;
 }
 
+// free list and destroy list mutex; returns exception code (if any were occured) or SUCCESS code
+int destroy_list(LinkedList *list) {
+    check_list_consistency(list);
+    int code = SUCCESS;
+
+    code = free_list(list);
+
+    if (code != SUCCESS) {
+        return code;
+    }
+    code = pthread_mutex_destroy(list->list_mutex);
+    
+    return code;
+}
+
 int main() {
     int string_count = 0;
     args arg_arr[MAX_STRING_COUNT];
@@ -403,8 +252,4 @@ int main() {
     return SUCCESS;
 }
 
-#undef MAX_STRING_SIZE
-#undef DELTA_TIME
-#undef MAX_STRING_COUNT
-#undef SUCCESS
-#undef FAILED
+#include "constants_undef.h"
