@@ -1,10 +1,11 @@
 #include "list.h"
+#include <errno.h>
 #include "constants_define.h"
 
 //--------- Linked List funtions definitions --------------//
 
 // init list with initialized mutex
-int init_list(LinkedList *list, pthread_mutex_t *mutex_ptr) {
+void init_list(LinkedList *list, pthread_mutex_t *mutex_ptr) {
     if (list != NULL && mutex_ptr != NULL) {
         // init mutex
         list->head = NULL;
@@ -34,11 +35,11 @@ void check_list_consistency(LinkedList *list) {
         status = FAILED;
     }
     else {
-        int is_empty = is_empty(list);
-        int is_not_empty = is_not_empty(list);
+        int empty = is_empty(list);
+        int not_empty = is_not_empty(list);
         // check list consistensy
-        if (is_empty != SUCCESS && is_not_empty != SUCCESS) {
-            status = FAILED
+        if (empty != SUCCESS && not_empty != SUCCESS) {
+            status = FAILED;
         }
     }
     if (status != SUCCESS) {

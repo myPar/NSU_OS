@@ -4,23 +4,25 @@
 #include <stdio.h>
 #include <pthread.h>
 
+// list's node
+typedef struct _Node Node;
+struct _Node
+{
+    char *string;
+    Node *next;
+};
+
 // list itself
-typedef struct _LinkedList
+typedef struct _LinkedList LinkedList;
+struct _LinkedList
 {
     pthread_mutex_t *list_mutex;
     Node *head;
     Node *tail;
-} LinkedList;
-
-// list's node
-typedef struct _Node
-{
-    char *string;
-    Node *next;
-} Node;
+};
 
 // initialize list with initial state and with pre-initialized mutex
-int init_list(LinkedList *list, pthread_mutex_t *mutex_ptr);
+void init_list(LinkedList *list, pthread_mutex_t *mutex_ptr);
 // check does list empty
 int is_empty(LinkedList *list);
 // check does list has any items
