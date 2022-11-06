@@ -1,30 +1,34 @@
 #include <stdio.h>
-#include <pthread.h>
-#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "list.h"
 #include "constants_define.h"
 
-//--------- main program functions and structures --------------//
+// thread shared resourses:
+int log_flag = FAILED;  
+LinkedList list;
 
-typedef struct _arg {
+// thread arg structure
+typedef struct _args {
     char *string;
     int delay; // in microseconds
-    LinkedList *list;
-} arg;
+} args;
 
 // thread's routine: adding new item to the list with specified delay
 void *add_string_with_delay(void *arg) {
     args* routine_arg = (args*) arg;
     int delay = routine_arg->delay;
     char *string = routine_arg->string;
-    LinkedList *list = routine_arg->list;
 
     usleep(delay);
-    printf("%s\n", string);
-    int ret_code = add(list);
+    if (log_flag == SUCCESS) {
+        printf("%s%s\n", "string was added to list: ", string);
+    }
+    int ret_code = add(&list, string);
 
     return (void*) ret_code;
 }
@@ -75,6 +79,7 @@ int read_strings(args *arg_arr) {
     return string_count;
 }
 
+// allocate pthread_t structures array
 int allocate_threads_space(int string_count, pthread_t **threads_space) {
     *threads_space = (pthread_t*) malloc(sizeof(pthread_t) * string_count);
 
@@ -121,7 +126,7 @@ int try_join_thread(pthread_t *thread, int thread_idx) {
     }
     // print thread routine exception message
     if (thread_ret_code != SUCCESS) {
-        int exception_message = strerror(thread_ret_code);
+        char *exception_message = strerror(thread_ret_code);
         fprintf(stderr, "%s%d%s%s\n", "exception in thread ", thread_idx, ": ", exception_message);
     }
     return SUCCESS;
@@ -153,9 +158,9 @@ int init_mutex(pthread_mutex_t *mutex) {
     pthread_mutexattr_t attribute;
 
     // init mutex attribute
-    int code = pthread_mutex_attr_init(&attribute);
+    int code = pthread_mutexattr_init(&attribute);
     if (code != SUCCESS) {
-        char* exception_message = strerror(code1);
+        char* exception_message = strerror(code);
         fprintf(stderr, "%s%s\n", "mutex atrr init error: ", exception_message);
         
         return FAILED;
@@ -187,12 +192,12 @@ int destroy_mutex(pthread_mutex_t *mutex) {
     int code = pthread_mutex_destroy(mutex);
 
     if (code != SUCCESS) {
-        char* error_message = strerror(code);
-        fprintf(stderr, "%s%s\n","can't destroy mutex: ", error_message);
+        char* exception_message = strerror(code);
+        fprintf(stderr, "%s%s\n", "FATAL, mutex destroy error: ", exception_message);
 
-        return FAILED;
+        // terminate the process
+        exit(FAILED);
     }
-    return SUCCESS;
 }
 
 // free list and destroy list mutex; returns exception code (if any were occured) or SUCCESS code
@@ -201,19 +206,40 @@ int destroy_list(LinkedList *list) {
     int code = SUCCESS;
 
     code = free_list(list);
+    pthread_mutex_destroy(list->list_mutex);
 
-    if (code != SUCCESS) {
-        return code;
-    }
-    code = pthread_mutex_destroy(list->list_mutex);
-    
     return code;
 }
 
-int main() {
+// init list and mutex
+int create_list(LinkedList *list, pthread_mutex_t *mutex) {
+    int code = init_mutex(mutex);
+    if (code != SUCCESS) {return FAILED;}
+    init_list(list, mutex);
+
+    return SUCCESS;
+}
+
+void print_args_info() {
+    printf("arg='1': log adding items to the list.\n");
+    printf("arg='0': don't log adding items to the list.\n");
+}
+
+int set_log_state(int argc, char *argv[]) {
+    if (argc != ARGS_COUNT) {
+        printf("%s%d%s\n","invalid args count - ", argc, " should be 1:");
+        print_args_info();
+
+        return FAILED;
+    }
+    
+}
+
+int main(int argc, char *argv[]) {
     int string_count = 0;
     args arg_arr[MAX_STRING_COUNT];
     pthread_t *threads_space;
+    pthread_mutex_t mutex;
 
     printf("enter the string sequence:\n");
     string_count = read_strings(arg_arr);
@@ -230,7 +256,13 @@ int main() {
     int allocate_status = allocate_threads_space(string_count, &threads_space);
     if (allocate_status == FAILED) {return FAILED;}
 
-    printf("\nstart sorting...\n");
+    // create list
+    int code = create_list(&list, &mutex);
+    if (code != SUCCESS) {
+        free(threads_space);
+        return FAILED;
+    }
+    printf("\nstart adding items...\n");
 
     // create threads
     int create_status = create_threads(string_count, threads_space, arg_arr);
@@ -247,7 +279,18 @@ int main() {
     }
     free(threads_space);
 
-    printf("\nthe sorting is completed successfully.\n");
+    printf("\nlist creating is completed successfully.\n");
+
+    printf("strings in sorted order:\n");
+    print_list(&list);
+
+    code = destroy_list(&list);
+    if (code != SUCCESS) {
+        char *error_message = strerror(code);
+        fprintf(stderr, "%s%s\n", "can't destroy a list: ", error_message);
+
+        return FAILED;
+    }
 
     return SUCCESS;
 }
