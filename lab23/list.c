@@ -122,6 +122,14 @@ int print_list(LinkedList *list) {
 // free list memory from list nodes (without mutex destroying!)
 int free_list(LinkedList *list) {
     check_list_consistency(list); // check list consistency
+    
+    pthread_mutex_t *list_mutex = list->list_mutex;
+
+    // lock mutex for synchronization:
+    int code = pthread_mutex_lock(list_mutex);
+    if (code != SUCCESS) {
+        return code;
+    }
 
     Node *cur_item = list->head;
     Node *next_item;
@@ -129,13 +137,6 @@ int free_list(LinkedList *list) {
     if (cur_item == NULL) {
         // nothing to free the list is empty
         return SUCCESS;
-    }
-    pthread_mutex_t *list_mutex = list->list_mutex;
-    
-    // lock mutex for synchronization:
-    int code = pthread_mutex_lock(list_mutex);
-    if (code != SUCCESS) {
-        return code;
     }
 
     while (cur_item != NULL) {
