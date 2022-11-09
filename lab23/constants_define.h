@@ -9,3 +9,4 @@
 #define ARG_IDX 1
 #define LOG_ENABLE 1
 #define LOG_DISABLE 0
+#define BASE 10

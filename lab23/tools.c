@@ -181,7 +181,7 @@ int try_cast_arg_to_int(char* str) {
         }
     }
     // strtol() returns 0 if parse int was failed
-    long int in_arg_value = strtol(str, NULL, 10);
+    long int in_arg_value = strtol(str, NULL, BASE);
     if (in_arg_value == CAST_INT_FAILED || in_arg_value == LONG_MIN || in_arg_value == LONG_MAX) {
         printf("invalid arg: %s\n", str);
         // finish the process by exit() function

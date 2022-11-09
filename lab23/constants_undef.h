@@ -9,3 +9,4 @@
 #undef ARG_IDX
 #undef LOG_ENABLE
 #undef LOG_DISABLE
+#undef BASE
