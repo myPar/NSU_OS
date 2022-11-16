@@ -10,3 +10,7 @@
 #undef LOG_ENABLE
 #undef LOG_DISABLE
 #undef BASE
+#undef EMPTY_MSG
+#undef MAX_STRING_SIZE
+#undef ERR_INFO_MAX_SIZE
+#undef MAX_INT_STR_SIZE

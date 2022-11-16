@@ -1,14 +1,48 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <string.h>
 #include <stdlib.h>
 #include <limits.h>
 
-#include "list.h"
 #include "tools.h"
 #include "constants_define.h"
+
+void str_to_int(int a, char *buffer) {
+    int cur_idx = 0;
+
+    if (a == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return;
+    }
+
+    while(a > 0) {
+        int cur_digit = a % 10;
+        buffer[cur_idx] = (char) cur_digit + '0';
+        
+        cur_idx++;
+        a /= 10;
+    }
+    int value_size = cur_idx;
+    // reverse buffer:
+    for (int i = 0; i < value_size / 2; i++) {
+        int copy = buffer[i];
+        int end_idx = value_size - 1 - i;
+
+        buffer[i] = buffer[end_idx];
+        buffer[end_idx] = copy;
+    }
+    buffer[value_size] = '\0';
+}
+
+void set_thread_name(char* thread_name_buffer, int thread_idx) {
+    char *part1 = "Thread";
+    char part2[MAX_INT_STR_SIZE];
+
+    str_to_int(thread_idx, part2);
+    strcpy(thread_name_buffer, part1);
+    strcat(thread_name_buffer, part2);
+}
 
 // reading input strings:
 int read_strings(args *arg_arr) {
@@ -17,6 +51,7 @@ int read_strings(args *arg_arr) {
     while (string_count < MAX_STRING_COUNT) {
         int cur_idx = string_count;
         char *buffer = arg_arr[cur_idx].string;
+        char *thread_name = arg_arr[cur_idx].thread_name;
         int *time_delay = &arg_arr[cur_idx].delay;
 
         char *result_ptr = fgets(buffer, MAX_STRING_SIZE, stdin);
@@ -48,103 +83,13 @@ int read_strings(args *arg_arr) {
         if (buffer[string_size - 1] == '\n') {
             buffer[string_size - 1] = '\0';
         }
-        // init time delay arg
+        // init remaining args:
         *time_delay = DELTA_TIME * string_size;
+        set_thread_name(thread_name, cur_idx);
         string_count++;
     }
 
     return string_count;
-}
-
-// allocate pthread_t structures array
-int allocate_threads_space(int string_count, pthread_t **threads_space) {
-    *threads_space = (pthread_t*) malloc(sizeof(pthread_t) * string_count);
-
-    if (*threads_space == NULL) {
-        // errno is setted
-        perror("can't allocate memory for pthread_t structures");
-        return FAILED;
-    }
-    return SUCCESS;
-}
-
-void free_mutex_attribute(pthread_mutexattr_t *attribute) {
-    int code = pthread_mutexattr_destroy(attribute);
-
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "FATAL, mutex attr destroy error: ", exception_message);
-
-        // terminate the process
-        exit(FAILED);
-    }
-}
-
-// init ERROR_CHECK mutex
-int init_mutex(pthread_mutex_t *mutex) {
-    pthread_mutexattr_t attribute;
-
-    // init mutex attribute
-    int code = pthread_mutexattr_init(&attribute);
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "mutex atrr init error: ", exception_message);
-        
-        return FAILED;
-    }
-    // set ERRORCHECK type
-    code = pthread_mutexattr_settype(&attribute, PTHREAD_MUTEX_ERRORCHECK);
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "mutex atrr set type error: ", exception_message);
-        
-        return FAILED;
-    }
-    // init mutex
-    code = pthread_mutex_init(mutex, &attribute);
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "mutex init error: ", exception_message);
-        
-        free_mutex_attribute(&attribute);
-
-        return FAILED;
-    }
-    free_mutex_attribute(&attribute);
-
-    return SUCCESS;
-}
-
-void destroy_mutex(pthread_mutex_t *mutex) {
-    int code = pthread_mutex_destroy(mutex);
-
-    if (code != SUCCESS) {
-        char* exception_message = strerror(code);
-        fprintf(stderr, "%s%s\n", "FATAL, mutex destroy error: ", exception_message);
-
-        // terminate the process
-        exit(FAILED);
-    }
-}
-
-// free list and destroy list mutex; returns exception code (if any were occured) or SUCCESS code
-int destroy_list(LinkedList *list) {
-    check_list_consistency(list);
-    int code = SUCCESS;
-
-    code = free_list(list);
-    destroy_mutex(list->list_mutex);
-
-    return code;
-}
-
-// init list and mutex
-int create_list(LinkedList *list, pthread_mutex_t *mutex) {
-    int code = init_mutex(mutex);
-    if (code != SUCCESS) {return FAILED;}
-    init_list(list, mutex);
-
-    return SUCCESS;
 }
 
 void print_args_info() {
@@ -167,10 +112,8 @@ int has_not_digit(char* str)  {
 
 // check cast of string to int (terminate the process if fails)
 int try_cast_arg_to_int(char* str) {
-    // check is there not digit characters in string
     if (has_not_digit(str)) {
         printf("invalid arg: %s\n", str);
-        // finish the process by exit() function
         exit(FAILED);
     }
     // check 0 input arg value
@@ -184,7 +127,6 @@ int try_cast_arg_to_int(char* str) {
     long int in_arg_value = strtol(str, NULL, BASE);
     if (in_arg_value == CAST_INT_FAILED || in_arg_value == LONG_MIN || in_arg_value == LONG_MAX) {
         printf("invalid arg: %s\n", str);
-        // finish the process by exit() function
         exit(FAILED);
     }
     return (int) in_arg_value;
