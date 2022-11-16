@@ -20,18 +20,12 @@ struct _LinkedList
     Node *head;
     Node *tail;
 };
-
-// initialize list with initial state and with pre-initialized mutex
-void init_list(LinkedList *list, pthread_mutex_t *mutex_ptr);
-// check does list empty
-int is_empty(LinkedList *list);
-// check does list has any items
-int is_not_empty(LinkedList *list);
-// check list consistency state terminate process if consistency is broken
-void check_list_consistency(LinkedList *list);
-// add new item to the list
-int add(LinkedList *list, char *adding_string);
-// print list items
-int print_list(LinkedList *list);
+//char *error_case_info - can be info about calling thread, for example
+// return empty list ptr or NULL if error ocurred
+LinkedList *create_list(const char *error_case_info);
+int add(LinkedList *list, char *adding_string, const char *error_case_info);
+int print_list(LinkedList *list, const char *error_case_info);
 // free memory from list items
-int free_list(LinkedList *list);
+int free_list(LinkedList *list, const char *error_case_info);
+// free list nodes, destroy and free list mutex, free list structure
+int destroy_list(LinkedList *list, const char *error_case_info);
