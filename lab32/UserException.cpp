@@ -4,10 +4,10 @@
 
 using namespace std;
 
-BaseException::BaseException(const string name, string type, string msg) {
-    this->name = name;
-    this->type = type;
-    this->msg = msg;
+BaseException::BaseException(const string n, string t, string m) {
+    name = n;
+    type = t;
+    msg = m;
 }
 BaseException::BaseException() {
     name = "";
@@ -37,24 +37,20 @@ const string ServerException::name = "Server";
 const string ServerException::SERVER_CREATE_ERROR = "Server creation";
 const string ServerException::SERVER_EXECUTION_ERROR = "Server execution";
 
-ServerException::ServerException(string type, string msg) {
-    BaseException(ServerException::name, type, msg);
-}
+ServerException::ServerException(string type, string msg) : BaseException(ServerException::name, type, msg) {}
 
 // ---Handler exeption
 const string HandlerException::name = "Handler";
 const string HandlerException::HANDLER_THREAD_CREATION = "Creation of the new handler thread";
-HandlerException::HandlerException(string type, string msg) {
-    BaseException(HandlerException::name, type, msg);
-}
+HandlerException::HandlerException(string type, string msg) : BaseException(HandlerException::name, type, msg) {}
 
 // ---workflow exeption
 ServerWorkflowException::ServerWorkflowException() {
     code = 0;
     msg = string("");
-}
+};
 
-ServerWorkflowException::ServerWorkflowException(int code, string msg) {
-    this->code = code;
-    this->msg = msg;
-}
+ServerWorkflowException::ServerWorkflowException(int c, string m) {
+    code = c;
+    msg = m;
+};

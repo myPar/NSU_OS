@@ -53,13 +53,11 @@ Server::Server(const char *ip, int port) {
     UserLogger::log(logger_agent, string("server socket binded."), LogLevels::LOW);
 
     int listen_status = listen(server_socket, SocketCodes::BACKLOG);
-    listen_status = -1; // TODO REMOVE LATER
     if (listen_status == SocketCodes::FAILED) {
-        cout << "LISTEN ERROR" << endl; // TODO REMOVE LATER
         string system_err_msg = string(strerror(errno));
         string msg = string("can't turn server socket to listen mode: ") + system_err_msg;
-
-        throw ServerException(ServerException::SERVER_CREATE_ERROR, msg);
+        
+        throw ServerException(ServerException::SERVER_CREATE_ERROR, msg);;
     }
     UserLogger::log(logger_agent, string("server socket turned in listening mode."), LogLevels::LOW);
 
@@ -104,5 +102,6 @@ void Server::interrupt() {
 }
 
 Server::~Server() {
+    close(server_socket);
     delete handler;
 }

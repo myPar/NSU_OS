@@ -1,13 +1,17 @@
 #include <pthread.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <string.h>
 #include <string>
 #include <iostream>
+#include <strings.h>
+#include <arpa/inet.h> 
 
 using namespace std;
 
 #define FAILED -1
 #define SUCCESS 0
-#define CLIENTS_COUNT 3
+#define CLIENTS_COUNT 1
 
 typedef struct _args {
     string peer_address;
@@ -22,13 +26,13 @@ const char* req2 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\n"
 const char* req3 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\n"
                     "Host: reqbin.com\n";
 
-char *requests[] = {req1, req2, req3};
+const char *requests[] = {req2, req1, req3};
 
 int send_request(int request_idx, int socket) {
-    int request_size = (int) sizeof(requests[request_idx]);
+    int request_size = (int) strlen(requests[request_idx]);
     int totally_send = 0;
     while (true) {
-        int send_count = send(socket, requests[request_idx] + totally_send, request_size - totally_send, 0)
+        int send_count = send(socket, requests[request_idx] + totally_send, request_size - totally_send, 0);
         if (send_count == FAILED) {
             return FAILED;
         }
@@ -48,14 +52,13 @@ void *client_routine(void *arg) {
     const char* dst_address = client_arg->peer_address.c_str();
     
     string client_name = string("client ") + to_string(client_idx);
-    
-    int s = socket(AF_INET, SOCK_STREAM, SocketCodes::DEFAULT_PROTOCOL);
+    int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s == FAILED) {
         string msg = client_name + string(" - can't init socket");
         perror(msg.c_str());
         close(s);
 
-        return FAILED;
+        return (void*) FAILED;
     }
     struct sockaddr_in server_address;
 
@@ -68,17 +71,18 @@ void *client_routine(void *arg) {
         perror(msg.c_str());
         close(s);
 
-        return FAILED;      
+        return (void*) FAILED;      
     }
     server_address.sin_addr.s_addr = address_value;
 
     int connect_status = connect(s, (struct sockaddr*) &server_address, sizeof(server_address));
+    cout << "connect status = " << connect_status << endl;
     if (connect_status == FAILED) {
         string msg = client_name + string(" can't connect to peer ") + client_arg->peer_address + string(":") + to_string(dst_port);
         perror(msg.c_str());
         close(s);
 
-        return FAILED;
+        return (void*) FAILED;
     }
     int send_status = send_request(client_idx, s);
     if (send_status == FAILED) {
@@ -88,7 +92,7 @@ void *client_routine(void *arg) {
     }
     close(s);
 
-    return SUCCESS;
+    return (void*) SUCCESS;
 }
 
 void init_args(args* threads_args, int server_port, string server_ip) {
@@ -115,7 +119,7 @@ int main() {
     
     // start clients:
     for (int i = 0; i < CLIENTS_COUNT; i++) {
-        int code = pthread_create(&threads[i], NULL, client_routine, (void*) &args[i]);
+        int code = pthread_create(&threads[i], NULL, client_routine, (void*) &threads_args[i]);
         if (code != SUCCESS) {
             char* sys_msg = strerror(code);
             cerr << "can't create thread " << i << ": " << sys_msg << endl;

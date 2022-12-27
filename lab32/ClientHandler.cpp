@@ -6,6 +6,7 @@
 #include <arpa/inet.h> 
 #include <unistd.h>
 #include <resolv.h>
+#include <cassert>
 
 #include "ClientHandler.h"
 #include "constants.h"
@@ -100,11 +101,11 @@ int ClientHandler::check_allowed_request(char* buff, int string_len, string logg
         delete[] line_buff;
         return HTTPcodes::INTERNAL_SERVER_ERROR;    // just incorrect request
     }
+    UserLogger::log(logger_agent, string("http version - ") + http_version, LogLevels::MEDIUM);
     if (http_version != HTTPrequest::EXPECTED_HTTP_VERSION) {
         delete[] line_buff; 
         return HTTPcodes::HTTP_VERSION_NOT_SUPPORTED;
     }
-    UserLogger::log(logger_agent, string("http version - ") + http_version, LogLevels::MEDIUM);
     delete[] line_buff;
 
     return ServerCodes::SUCCESS;
@@ -118,7 +119,7 @@ int ClientHandler::read_request(char* read_buff, int socket_dscr, string logger_
     UserLogger::log(logger_agent, "start reading the request..", LogLevels::MEDIUM);
     // read header:
     while(true) {
-        read_count = recv(socket_dscr, read_buff, Constants::PROXY_BUFF_SIZE, SocketCodes::NO_RECV_FLAGS);
+        read_count = recv(socket_dscr, read_buff + totally_read, Constants::PROXY_BUFF_SIZE - totally_read, SocketCodes::NO_RECV_FLAGS);
 
         if (read_count == SocketCodes::FAILED) {
             // buffer overflow (GET and HEAD requests are too few for it, so this is invalid request)
@@ -148,7 +149,9 @@ int ClientHandler::read_request(char* read_buff, int socket_dscr, string logger_
         }        
     }
     UserLogger::log(logger_agent, string("request is read, total size - ") + 
-    to_string(totally_read) + string("byte"), LogLevels::MEDIUM);
+    to_string(totally_read) + string(" byte"), LogLevels::MEDIUM);
+    read_buff[totally_read] = '\0';
+    UserLogger::log(logger_agent, string("request data: ") + string(read_buff), LogLevels::HIGHT);
 
     return totally_read;
 }
@@ -165,6 +168,11 @@ string ClientHandler::get_host(string full_uri) {
 }
 
 string ClientHandler::get_uri(char* buff, int string_len) {
+    if (string_len == Constants::NO_LINE) {
+        string msg = string("can't parse uri. invalid header");
+        throw ServerWorkflowException(HTTPcodes::INTERNAL_SERVER_ERROR, msg);
+    }
+    assert(string_len > 0);
     char* line_buff = new char[string_len];
     strncpy(line_buff, buff, string_len);
     string http_head = string(line_buff);
@@ -228,13 +236,14 @@ int ClientHandler::connect_to_peer(string domain_name, int port, string logger_a
 
 void ClientHandler::handle_client(ClientData data) {
     int socket = data.get_socket_dscr();
-    char buffer[Constants::PROXY_BUFF_SIZE];
+    char *buffer = new char[Constants::REQUEST_BUFF_SIZE];
     string logger_agent = UserLogger::get_client_name(&data);
     int peer_socket;
 
     try {
         int data_size = read_request(buffer, socket, logger_agent);
         int first_line_length = check_line(buffer, data_size);
+        UserLogger::log(logger_agent, "line checked", LogLevels::HIGHT);
 
         string uri = get_uri(buffer, first_line_length);
         UserLogger::log(logger_agent, string("uri - ") + uri, LogLevels::MEDIUM);
@@ -246,12 +255,14 @@ void ClientHandler::handle_client(ClientData data) {
         close(peer_socket); // TODO remove later
     }
     catch(ServerWorkflowException e) {
+        delete[]  buffer;
         UserLogger::log_error(string("ClientHandler"), e);
         //send_error_resp(data, request_status);
         //close_connection(data);
         close(peer_socket);
         close(socket);
     }
+    delete[]  buffer;
 }
 
 ClientHandler::ClientHandler() {

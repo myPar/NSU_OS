@@ -17,6 +17,7 @@ namespace PthreadCodes {
 
 namespace Constants {
     extern int PROXY_BUFF_SIZE;
+    extern int REQUEST_BUFF_SIZE;
     extern int MIN_REQ_LEN;
     extern int NO_LINE;
     extern int PEER_PORT;

@@ -5,11 +5,11 @@
 using namespace std;
 
 class BaseException: public exception {
-private:
+public:
     string name;
     string type;
     string msg;
-public:
+
     enum Output{STDERR=0, STDOUT=1};
     
     BaseException(const string name, string type, string msg);

@@ -8,16 +8,17 @@ using namespace std;
 
 int main() {
     int exit_status = ServerCodes::SUCCESS;
-    string ip;
-    int port;
-    int log_level;
-
+    string ip = string("127.0.0.1");
+    int port = 1234;
+    int log_level = 10;
+    /*
     cout << "enter Server ip:" << endl;
     cin >> ip;
     cout << "enter Server port:" << endl;
     cin >> port;
     cout << "enter log level:" << endl;
     cin >> log_level;
+    */
     UserLogger::set_level(log_level);
     
     cout << "entered:" << ip << ":" << port << endl;
@@ -25,7 +26,7 @@ int main() {
 
     try {
         Server server = Server(ip.c_str(), port);
-        //server.run();
+        server.run();
     }
     catch(ServerException e) {
         exit_status = ServerCodes::FAILED;
