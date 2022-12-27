@@ -78,10 +78,14 @@ int ClientHandler::check_line(char* buff, int data_size) {
 }
 
 int ClientHandler::check_allowed_request(char* buff, int string_len, string logger_agent) {
-    char* line_buff = new char[string_len];
+    char* line_buff = new char[string_len + 1];
     strncpy(line_buff, buff, string_len);
+    line_buff[string_len] = '\0';   // result is not null-terminated according to the documentation
+
     string http_head = string(line_buff);
     string delimiter = string(" ");
+
+    UserLogger::log(logger_agent, string("http head - ") + http_head, LogLevels::HIGHT);
 
     // check request type:
     string request_type = Tokenizer::get_token(http_head, delimiter, 0);
@@ -132,13 +136,15 @@ int ClientHandler::read_request(char* read_buff, int socket_dscr, string logger_
         }
         UserLogger::log(logger_agent, to_string(read_count) + string(" bytes was read"), LogLevels::MEDIUM);
         totally_read += read_count;
+        read_buff[totally_read] = '\0';
+        UserLogger::log(logger_agent, string("read data: ") + string(read_buff), LogLevels::HIGHT);
 
         // check request type (should be GET or HEAD)
         if (init_state) {
             int line_status = check_line(read_buff, totally_read);
 
             if (line_status != Constants::NO_LINE) {
-
+                UserLogger::log(logger_agent, string("new line pos=") + to_string(line_status), LogLevels::HIGHT);
                 int status = check_allowed_request(read_buff, line_status, logger_agent);
                 
                 if (status != ServerCodes::SUCCESS) {
@@ -234,14 +240,89 @@ int ClientHandler::connect_to_peer(string domain_name, int port, string logger_a
     return s;
 }
 
+void ClientHandler::send_request_to_peer(string agent, int peer_socket, char* data_buff, int data_size) {
+    int totally_send = 0;
+    
+    while (true) {
+        int send_count = send(peer_socket, data_buff + totally_send, data_size - totally_send, SocketCodes::NO_SEND_FLAGS);
+
+        if (send_count == SocketCodes::FAILED) {
+            char* sys_msg = strerror(errno);
+            string msg = string("error while writing request to peer: ") + string(sys_msg);
+
+            throw ServerWorkflowException(HTTPcodes::INTERNAL_SERVER_ERROR, msg);
+        }
+        UserLogger::log(agent, to_string(send_count) + string(" bytes send to peer"), LogLevels::HIGHT);
+        totally_send += send_count;
+        if (totally_send == data_size) {
+            break;
+        }
+    }
+}
+
+int ClientHandler::send_to(string agent, int socket, const char* data_buff, int data_size) {
+    int totally_send = 0;
+    
+    while (true) {
+        int send_count = send(socket, data_buff + totally_send, data_size - totally_send, SocketCodes::NO_SEND_FLAGS);
+        if (send_count == SocketCodes::FAILED) {
+            return SocketCodes::FAILED;
+        }
+        UserLogger::log(agent, to_string(send_count) + string(" bytes send"), LogLevels::HIGHT);
+        totally_send += send_count;
+
+        if (totally_send == data_size) {
+            break;
+        }
+    }
+    return totally_send;
+}
+
+void ClientHandler::send_response_to_client(string agent, int peer_socket, int client_socket) {
+    char* buff = new char[Constants::RECV_BUFF_SIZE];
+    int totally_read = 0;
+
+    while (true) {
+        int read_count = recv(peer_socket, buff, Constants::RECV_BUFF_SIZE, SocketCodes::NO_RECV_FLAGS);
+        
+        if (read_count == SocketCodes::FAILED) {
+            delete[] buff;
+            char* sys_msg = strerror(errno);
+            string msg = string("error while reading peer response - ") + string(sys_msg);
+
+            throw ServerWorkflowException(HTTPcodes::INTERNAL_SERVER_ERROR, msg);
+        }
+        if (read_count == SocketCodes::PEER_SHUTDOWN) {
+            UserLogger::log(agent, string("full response is sended to client, totall - ") +
+            to_string(totally_read) + string(" bytes"), LogLevels::MEDIUM);
+            
+            break;
+        }
+        totally_read += read_count;
+        UserLogger::log(agent, to_string(read_count) + string(" bytes of peer response received"), LogLevels::HIGHT);
+
+        // send received bytes to client 
+        int send_status = send_to(agent, client_socket, buff, read_count);
+        if (send_status == SocketCodes::FAILED) {
+            delete[] buff;
+            char* sys_msg = strerror(errno);
+            string msg = string("error while sending response to client") + string(sys_msg);
+
+            throw ServerWorkflowException(HTTPcodes::INTERNAL_SERVER_ERROR, msg);
+        }
+        UserLogger::log(agent, to_string(send_status) + string(" bytes of response sended to client"), LogLevels::HIGHT);
+    }
+    delete[] buff;
+}
+
 void ClientHandler::handle_client(ClientData data) {
-    int socket = data.get_socket_dscr();
+    int client_socket = data.get_socket_dscr();
     char *buffer = new char[Constants::REQUEST_BUFF_SIZE];
     string logger_agent = UserLogger::get_client_name(&data);
     int peer_socket;
 
     try {
-        int data_size = read_request(buffer, socket, logger_agent);
+        int data_size = read_request(buffer, client_socket, logger_agent);
         int first_line_length = check_line(buffer, data_size);
         UserLogger::log(logger_agent, "line checked", LogLevels::HIGHT);
 
@@ -252,7 +333,11 @@ void ClientHandler::handle_client(ClientData data) {
         UserLogger::log(logger_agent, string("host - ") + host_name, LogLevels::MEDIUM);
         
         peer_socket = ClientHandler::connect_to_peer(host_name, Constants::PEER_PORT, logger_agent);
+        send_request_to_peer(logger_agent, peer_socket, buffer, data_size);
+        send_response_to_client(logger_agent, peer_socket, client_socket);
+        
         close(peer_socket); // TODO remove later
+        close(client_socket);
     }
     catch(ServerWorkflowException e) {
         delete[]  buffer;
@@ -260,7 +345,7 @@ void ClientHandler::handle_client(ClientData data) {
         //send_error_resp(data, request_status);
         //close_connection(data);
         close(peer_socket);
-        close(socket);
+        close(client_socket);
     }
     delete[]  buffer;
 }

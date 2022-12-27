@@ -3,11 +3,13 @@
 int SocketCodes::FAILED = -1;
 int SocketCodes::DEFAULT_PROTOCOL = 0;
 int SocketCodes::NO_RECV_FLAGS = 0;
+int SocketCodes::NO_SEND_FLAGS = 0;
 int SocketCodes::PEER_SHUTDOWN = 0;
 int SocketCodes::BACKLOG = 5;
 int PthreadCodes::SUCCESS = 0;
 int Constants::PROXY_BUFF_SIZE = 16 * 1024; // 16 kb
 int Constants::REQUEST_BUFF_SIZE = 1024;
+int Constants::RECV_BUFF_SIZE = 1024;
 int Constants::MIN_REQ_LEN = 4; // GET, HEAD
 int Constants::NO_LINE = -1;
 int Constants::PEER_PORT = 80;

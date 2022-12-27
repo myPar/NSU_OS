@@ -12,6 +12,7 @@ using namespace std;
 #define FAILED -1
 #define SUCCESS 0
 #define CLIENTS_COUNT 1
+#define RECV_BUFF_SIZE 1024
 
 typedef struct _args {
     string peer_address;
@@ -23,10 +24,14 @@ const char* req1 = "POST http://reqbin.com/echo/get/json/page/2 HTTP/1.1\n"
                     "Host: reqbin.com\n";
 const char* req2 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\n"
                     "Host: reqbin.com\n";
-const char* req3 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\n"
-                    "Host: reqbin.com\n";
+const char* req3 = "GET http://httpbin.org/get HTTP/1.0\n"
+                    "Host: httpbin.org\n";
+const char* req4 = "GET http://kremlin.ru/events/president/news HTTP/1.0\n"
+                    "Host: kremlin.ru\n";
+const char* req5 = "GET http://fit.ippolitov.me/CN_2/2021/list.html HTTP/1.0\n"
+                    "Host: fit.ippolitov.me\n";
 
-const char *requests[] = {req2, req1, req3};
+const char *requests[] = {req5, req2, req1};
 
 int send_request(int request_idx, int socket) {
     int request_size = (int) strlen(requests[request_idx]);
@@ -41,6 +46,26 @@ int send_request(int request_idx, int socket) {
             break;
         }
     }
+    return SUCCESS;
+}
+
+int read_response(int socket, int client_idx) {
+    char buffer[RECV_BUFF_SIZE];
+    cout << "response to client " << client_idx << endl;
+
+    while (true) {
+        int read_count = recv(socket, buffer, RECV_BUFF_SIZE, 0);
+        if (read_count == FAILED) {
+            return FAILED;
+        }
+        if (read_count == 0) {
+            break;
+        }
+        buffer[read_count] = '\0';
+        cout << buffer;
+    }
+    cout << endl;
+
     return SUCCESS;
 }
 
@@ -84,12 +109,34 @@ void *client_routine(void *arg) {
 
         return (void*) FAILED;
     }
+    // send request:
     int send_status = send_request(client_idx, s);
     if (send_status == FAILED) {
-        string msg = client_name + string(" send message error to perr ") + client_arg->peer_address + string(":") + to_string(dst_port);
+        string msg = client_name + string(" send message to perr error ") + client_arg->peer_address + string(":") + to_string(dst_port);
         perror(msg.c_str());
         close(s);
+
+        return (void*) FAILED;
     }
+    // shutdown write:
+    int shutdown_status = shutdown(s, SHUT_WR);
+    if (shutdown_status == FAILED) {
+        string msg = client_name + string(" shutdown write error");
+        perror(msg.c_str());
+        close(s);
+        
+        return (void*) FAILED;
+    }
+    // read proxy response:
+    int read_response_status = read_response(s, client_idx);
+    if (read_response_status == FAILED) {
+        string msg = client_name + string(" receive response error from peer ") + client_arg->peer_address + string(":") + to_string(dst_port);
+        perror(msg.c_str());
+        close(s);
+
+        return (void*) FAILED;
+    }
+    cout << client_name << " response read" << endl;
     close(s);
 
     return (void*) SUCCESS;
@@ -143,3 +190,4 @@ int main() {
 #undef FAILED
 #undef SUCCESS
 #undef CLIENTS_COUNT
+#undef RECV_BUFF_SIZE

@@ -7,6 +7,7 @@ namespace SocketCodes {
     extern int FAILED;
     extern int DEFAULT_PROTOCOL;
     extern int NO_RECV_FLAGS;
+    extern int NO_SEND_FLAGS;
     extern int PEER_SHUTDOWN;
     extern int BACKLOG;
 }
@@ -18,6 +19,7 @@ namespace PthreadCodes {
 namespace Constants {
     extern int PROXY_BUFF_SIZE;
     extern int REQUEST_BUFF_SIZE;
+    extern int RECV_BUFF_SIZE;
     extern int MIN_REQ_LEN;
     extern int NO_LINE;
     extern int PEER_PORT;

@@ -8,12 +8,18 @@ using namespace std;
 
 class ClientHandler {
 private:
-    // close client socket, reqlize all necessary resources
+    // close client socket, relize all necessary resources
     void close_connection(ClientData client_data, string logger_agent);
     
     // send http responce with exception code to client
-    void send_error_resp(ClientData client_data, int exception_code, string logger_agent);
+    void send_error_to_client(ClientData client_data, int exception_code, string logger_agent);
     
+    void send_request_to_peer(string logger_agent, int peer_socket, char* data_buff, int data_size);
+    // read peer response and send it to client
+    void send_response_to_client(string agent, int peer_socket, int client_socket);
+    // send data through specified socket
+    int send_to(string agent, int socket, const char* data_buff, int data_size);
+
     // reading client http request and returns it's total size
     int read_request(char* read_buff, int socket_dscr, string logger_agent);
 
