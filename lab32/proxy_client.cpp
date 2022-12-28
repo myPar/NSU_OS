@@ -20,16 +20,16 @@ typedef struct _args {
     int thread_idx;
 } args;
 
-const char* req1 = "POST http://reqbin.com/echo/get/json/page/2 HTTP/1.1\n"
-                    "Host: reqbin.com\n";
-const char* req2 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\n"
-                    "Host: reqbin.com\n";
-const char* req3 = "GET http://httpbin.org/get HTTP/1.0\n"
-                    "Host: httpbin.org\n";
-const char* req4 = "GET http://kremlin.ru/events/president/news HTTP/1.0\n"
-                    "Host: kremlin.ru\n";
-const char* req5 = "GET http://fit.ippolitov.me/CN_2/2021/list.html HTTP/1.0\n"
-                    "Host: fit.ippolitov.me\n";
+const char* req1 = "POST http://reqbin.com/echo/get/json/page/2 HTTP/1.1\r\n"
+                    "Host: reqbin.com\n\n";
+const char* req2 = "GET http://reqbin.com/echo/get/json/page/2 HTTP/1.0\r\n"
+                    "Host: reqbin.com\n\n";
+const char* req3 = "GET http://httpbin.org/get HTTP/1.0\r\n"
+                    "Host: httpbin.org\n\n";
+const char* req4 = "GET http://kremlin.ru/events/president/news HTTP/1.0\r\n"
+                    "Host: kremlin.ru\n\n";
+const char* req5 = "GET http://fit.ippolitov.me/CN_2/2021/list.html HTTP/1.0\r\n"
+                    "Host: fit.ippolitov.me\n\n";
 
 const char *requests[] = {req5, req2, req1};
 

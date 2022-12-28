@@ -14,7 +14,7 @@ private:
     // send http responce with exception code to client
     void send_error_to_client(ClientData client_data, int exception_code, string logger_agent);
     
-    void send_request_to_peer(string logger_agent, int peer_socket, char* data_buff, int data_size);
+    void send_request_to_peer(string logger_agent, int peer_socket, char* data_buff, int data_size, string request);
     // read peer response and send it to client
     void send_response_to_client(string agent, int peer_socket, int client_socket);
     // send data through specified socket

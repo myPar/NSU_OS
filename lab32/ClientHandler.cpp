@@ -13,6 +13,7 @@
 #include "UserException.h"
 #include "Tokenizer.h"
 #include "UserLogger.h"
+#include "HTTPconstructor.h"
 
 class StartHandleWrapper {
 public:
@@ -207,8 +208,6 @@ int ClientHandler::connect_to_peer(string domain_name, int port, string logger_a
         
         throw ServerWorkflowException(HTTPcodes::INTERNAL_SERVER_ERROR, string("can't resolve " + domain_name + ": " + string(msg)));
     }
-    //int address_len = resolve_result->h_length;
-    //int address_type = resolve_result->h_addrtype;
     char** address_list = resolve_result->h_addr_list;
     in_addr* address_value = (in_addr*) address_list[0];
     
@@ -240,7 +239,14 @@ int ClientHandler::connect_to_peer(string domain_name, int port, string logger_a
     return s;
 }
 
-void ClientHandler::send_request_to_peer(string agent, int peer_socket, char* data_buff, int data_size) {
+void ClientHandler::send_request_to_peer(string agent, int peer_socket, char* data_buff, int data_size, string request) {
+    size_t request_size = request.length();
+    const char *request_data = request.c_str();
+    strncpy(data_buff, request_data, request_size);
+    data_buff[request_size] = '\0';
+
+    UserLogger::log(agent, string("request, converted to peer format: ") + string(data_buff), LogLevels::MEDIUM);
+
     int totally_send = 0;
     
     while (true) {
@@ -258,6 +264,7 @@ void ClientHandler::send_request_to_peer(string agent, int peer_socket, char* da
             break;
         }
     }
+    shutdown(peer_socket, SHUT_WR);
 }
 
 int ClientHandler::send_to(string agent, int socket, const char* data_buff, int data_size) {
@@ -317,37 +324,45 @@ void ClientHandler::send_response_to_client(string agent, int peer_socket, int c
 
 void ClientHandler::handle_client(ClientData data) {
     int client_socket = data.get_socket_dscr();
-    char *buffer = new char[Constants::REQUEST_BUFF_SIZE];
+    char *in_buffer = new char[Constants::REQUEST_BUFF_SIZE];
+    char* out_buffer;
+
     string logger_agent = UserLogger::get_client_name(&data);
     int peer_socket;
 
     try {
-        int data_size = read_request(buffer, client_socket, logger_agent);
-        int first_line_length = check_line(buffer, data_size);
+        int data_size = read_request(in_buffer, client_socket, logger_agent);
+        int first_line_length = check_line(in_buffer, data_size);
         UserLogger::log(logger_agent, "line checked", LogLevels::HIGHT);
 
-        string uri = get_uri(buffer, first_line_length);
+        string uri = get_uri(in_buffer, first_line_length);
         UserLogger::log(logger_agent, string("uri - ") + uri, LogLevels::MEDIUM);
         
         string host_name = get_host(uri);
         UserLogger::log(logger_agent, string("host - ") + host_name, LogLevels::MEDIUM);
         
         peer_socket = ClientHandler::connect_to_peer(host_name, Constants::PEER_PORT, logger_agent);
-        send_request_to_peer(logger_agent, peer_socket, buffer, data_size);
+
+        out_buffer = new char[Constants::REQUEST_BUFF_SIZE];
+        string peer_request = HTTPconstructor::create_peer_request(host_name, uri);
+
+        send_request_to_peer(logger_agent, peer_socket, in_buffer, data_size, peer_request);
         send_response_to_client(logger_agent, peer_socket, client_socket);
         
         close(peer_socket); // TODO remove later
         close(client_socket);
     }
     catch(ServerWorkflowException e) {
-        delete[]  buffer;
+        delete[]  in_buffer;
+        delete[] out_buffer;
         UserLogger::log_error(string("ClientHandler"), e);
         //send_error_resp(data, request_status);
         //close_connection(data);
         close(peer_socket);
         close(client_socket);
     }
-    delete[]  buffer;
+    delete[]  in_buffer;
+    delete[] out_buffer;
 }
 
 ClientHandler::ClientHandler() {
