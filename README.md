@@ -1,2 +1,4 @@
 # NSU_OS
-OS workshop repository
+Практикум POSIX Thread API
+
+[условия лабораторных работ](http://parallels.nsu.ru/WackoWiki/KursOperacionnyeSistemy/PraktikumPosixThreads/PthreadTasks?v=c9d)
